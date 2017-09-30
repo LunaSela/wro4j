@@ -30,9 +30,11 @@ public class ObjectPoolHelper<T> {
   // Allows using the objects from the pool in a thread-safe fashion.
   private GenericObjectPool<T> objectPool;
 
+  final ObjectFactory<T> objectFactory;
 
   public ObjectPoolHelper(final ObjectFactory<T> objectFactory) {
     notNull(objectFactory);
+    this.objectFactory = objectFactory;
     objectPool = createObjectPool(objectFactory);
     notNull(objectPool);
   }
@@ -77,7 +79,15 @@ public class ObjectPoolHelper<T> {
    */
   public T getObject() {
     try {
-      return objectPool.borrowObject();
+      GenericObjectPool<T> pool;
+      synchronized (this) {
+        if (objectPool.isClosed()) {
+          // if pool is closed, reinitialize a new pool
+          objectPool = createObjectPool(objectFactory);
+        }
+        pool = objectPool;
+      }
+      return pool.borrowObject();
     } catch (final Exception e) {
       // should never happen
       throw new RuntimeException("Cannot get object from the pool", e);
