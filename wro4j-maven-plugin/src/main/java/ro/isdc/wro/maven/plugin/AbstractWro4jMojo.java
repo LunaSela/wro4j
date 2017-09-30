@@ -184,7 +184,11 @@ public abstract class AbstractWro4jMojo
           throw new MojoExecutionException("Exception in onAfterExecute", e);
         }
         finally {
-            getWroManager().destroy();
+            try {
+              getWroManager().destroy();
+            } catch (WroRuntimeException e) {
+              getLog().warn("Cannot cleanup WroManager",e);
+            }
         }
       }
     }
